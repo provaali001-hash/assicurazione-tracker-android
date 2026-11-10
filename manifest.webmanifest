@@ -1,0 +1,1 @@
+{"name":"Assicurazione Tracker","short_name":"Assicurazione","description":"Conteggio copertura assicurativa e sospensioni","start_url":"./","scope":"./","display":"standalone","background_color":"#f3f6f4","theme_color":"#123c32","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}

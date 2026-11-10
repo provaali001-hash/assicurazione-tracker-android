@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#123c32">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Assicurazione Tracker</title>
+<style>
+:root{color-scheme:light;--green:#176b50;--dark:#123c32;--bg:#f3f6f4;--muted:#64736c;--line:#dce5df}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#18251f}
+main{max-width:620px;margin:auto;padding:20px 16px 40px}header{display:flex;align-items:center;gap:12px;margin:4px 0 18px}
+.logo{width:46px;height:46px;border-radius:14px;background:#dcefe5;display:grid;place-items:center;font-size:25px}
+h1{font-size:22px;margin:0;color:var(--dark)}.sub{font-size:13px;color:var(--muted);margin-top:3px}
+.panel{background:white;border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 2px 8px #183c3010}
+.section-title{font-weight:750;font-size:15px;margin:0 0 12px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#f4f8f5;border-radius:14px;padding:14px;min-width:0}.stat .num{font-size:30px;font-weight:800;line-height:1.15;color:var(--green);font-variant-numeric:tabular-nums}
+.stat .label{font-weight:700;font-size:13px;margin-top:7px}.stat small,.muted{color:var(--muted);font-size:12px}
+.expiry{background:var(--dark);color:white;border-radius:14px;padding:16px;margin-top:10px}.expiry small{color:#c5ddd2;display:block;font-size:11px;letter-spacing:.06em;font-weight:700}
+.expiry strong{display:block;font-size:23px;margin-top:4px}.status{display:inline-block;padding:5px 9px;border-radius:30px;background:#e6f4eb;color:#176b50;font-size:12px;font-weight:750;margin-top:9px}
+.status.pause{background:#fff0d9;color:#8a4b00}.status.bad{background:#fde8e7;color:#a32119}
+label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}input{width:100%;padding:13px;border:1px solid #cbd8d0;border-radius:11px;background:white;font:inherit;font-size:16px;color:#18251f}
+button{border:0;border-radius:12px;padding:13px 15px;font:inherit;font-weight:750;cursor:pointer}.primary{width:100%;background:var(--green);color:white;margin-top:14px}
+.secondary{background:#eaf1ec;color:var(--dark)}.danger{background:#fff0ef;color:#a32119}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.actions button{flex:1}
+.history{list-style:none;padding:0;margin:0}.history li{padding:12px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}.history li:last-child{border-bottom:0}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--green);margin:6px 2px 0 1px;flex:none}.dot.pause{background:#d58a20}
+.event{flex:1}.event strong{font-size:14px}.event small{display:block;color:var(--muted);margin-top:3px}
+.tag{font-size:11px;font-weight:750;padding:4px 7px;border-radius:20px;background:#e6f4eb;color:#176b50;white-space:nowrap}.tag.pause{background:#fff0d9;color:#8a4b00}
+.empty{text-align:center;color:var(--muted);font-size:13px;padding:18px 4px}.note{font-size:11px;line-height:1.5;color:var(--muted)}
+.notice{padding:11px 12px;border-radius:11px;background:#fff4df;color:#80500e;font-size:12px;margin-top:10px}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:10px}@media(max-width:380px){.stat .num{font-size:25px}.stat{padding:11px}}
+</style>
+</head>
+<body><main>
+<header><div class="logo">🛡️</div><div><h1>Assicurazione Tracker</h1><div class="sub">Controlla copertura, sospensioni e scadenza</div></div></header>
+<section class="panel">
+<div class="section-title">Riepilogo polizza</div>
+<div class="stats">
+<div class="stat"><div class="num" id="coverageDays">—</div><div class="label">Giorni assicurativi rimasti</div><small id="coverageMonths">Inserisci l'attivazione</small></div>
+<div class="stat"><div class="num" id="pauseDays">—</div><div class="label">Giorni di sospensione rimasti</div><small id="pauseMonths">Massimo 10 mesi</small></div>
+</div>
+<div class="expiry"><small>DATA DI SCADENZA PREVISTA</small><strong id="expiry">—</strong><span class="status" id="status">Da configurare</span></div><div id="warning"></div>
+</section>
+<section class="panel">
+<div class="section-title">Inserimento date</div>
+<label for="activation">1. Data attivazione</label><input type="date" id="activation">
+<label for="suspension">2. Data sospensione</label><input type="date" id="suspension">
+<label for="reactivation">3. Data riattivazione</label><input type="date" id="reactivation">
+<button class="primary" id="saveEvent">Registra date inserite</button>
+<div class="note" style="margin-top:9px">Puoi compilare anche un solo campo per volta. Dopo la registrazione i campi si svuotano; le date vengono conservate nello storico. Sono ammesse anche date future.</div>
+</section>
+<section class="panel">
+<div class="section-title">Storico sospensioni e riattivazioni</div>
+<ul class="history" id="history"><li class="empty">Ancora nessun periodo registrato.</li></ul>
+<div id="editArea"></div>
+<div class="actions"><button class="secondary" id="editToggle">Modifica storico</button><button class="danger" id="reset">Azzera app</button></div>
+</section>
+<footer><div id="storageStatus" role="status" aria-live="polite">Controllo salvataggio…</div><div style="margin-top:6px">I dati restano salvati su questo dispositivo. Calcolo indicativo: verifica sempre le condizioni della tua polizza.</div></footer>
+</main>
+<script>
+const $=id=>document.getElementById(id), DAY=86400000;
+let data={activation:"",periods:[]};
+let editing=false;
+const today=()=>{const d=new Date();return new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())).toISOString().slice(0,10)};
+function parse(s){if(!s)return null;const [y,m,d]=s.split("-").map(Number);return new Date(Date.UTC(y,m-1,d))}
+function iso(d){return d.toISOString().slice(0,10)}
+function days(a,b){return Math.round((parse(b)-parse(a))/DAY)}
+function addMonths(s,n){const d=parse(s),y=d.getUTCFullYear(),m=d.getUTCMonth()+n,last=new Date(Date.UTC(y,m+1,0)).getUTCDate();return iso(new Date(Date.UTC(y,m,Math.min(d.getUTCDate(),last))))}
+function addDays(s,n){return iso(new Date(parse(s).getTime()+n*DAY))}
+function fmt(s){return parse(s).toLocaleDateString("it-IT",{day:"2-digit",month:"long",year:"numeric",timeZone:"UTC"})}
+function monthDay(n){const m=Math.floor(n/30.4375),d=Math.round(n-m*30.4375);return `${m} mesi e ${Math.max(0,d)} giorni`}
+const STORAGE_KEY="assicurazioneTracker";
+const DB_NAME="AssicurazioneTrackerDB";
+const DB_STORE="polizza";
+let saveQueue=Promise.resolve();
+let lastSavedAt=0;
+let storagePersistent=false;
+function setStorageStatus(message,isError=false){
+ const el=$("storageStatus");
+ if(el){el.textContent=message;el.style.color=isError?"#a32119":"#176b50";}
+}
+function snapshot(){
+ lastSavedAt=Math.max(Date.now(),lastSavedAt+1);
+ return {activation:data.activation||"",periods:(data.periods||[]).map(p=>({start:p.start||"",end:p.end||""})),_savedAt:lastSavedAt};
+}
+function openTrackerDB(){
+ return new Promise((resolve,reject)=>{
+   if(!window.indexedDB){reject(new Error("Archivio locale non disponibile"));return;}
+   const request=indexedDB.open(DB_NAME,1);
+   request.onupgradeneeded=()=>{
+     const db=request.result;
+     if(!db.objectStoreNames.contains(DB_STORE))db.createObjectStore(DB_STORE);
+   };
+   request.onsuccess=()=>resolve(request.result);
+   request.onerror=()=>reject(request.error||new Error("Impossibile aprire l'archivio"));
+   request.onblocked=()=>reject(new Error("Archivio occupato: chiudi eventuali altre finestre dell'app"));
+ });
+}
+async function requestPersistentStorage(){
+ try{
+   if(navigator.storage&&navigator.storage.persist){
+     storagePersistent=await navigator.storage.persist();
+   }
+ }catch(e){storagePersistent=false;}
+ setStorageStatus(storagePersistent
+   ?"Salvataggio locale attivo"
+   :"Salvataggio locale attivo");
+}
+function save(){
+ const record=snapshot();
+ let localOK=false;
+ try{
+   localStorage.setItem(STORAGE_KEY,JSON.stringify(record));
+   const check=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
+   localOK=!!check&&check._savedAt===record._savedAt;
+ }catch(e){console.error("Salvataggio locale non riuscito:",e);}
+ if(!localOK){
+   setStorageStatus("Attenzione: impossibile salvare nella memoria locale del browser.",true);
+   return Promise.reject(new Error("Salvataggio locale non riuscito"));
+ }
+ setStorageStatus("Dati salvati sul dispositivo…");
+ saveQueue=saveQueue.catch(()=>{}).then(async()=>{
+   const db=await openTrackerDB();
+   try{
+     await new Promise((resolve,reject)=>{
+       const tx=db.transaction(DB_STORE,"readwrite");
+       tx.objectStore(DB_STORE).put(record,"current");
+       tx.oncomplete=resolve;
+       tx.onerror=()=>reject(tx.error||new Error("Errore durante la scrittura"));
+       tx.onabort=()=>reject(tx.error||new Error("Salvataggio interrotto"));
+     });
+   }finally{db.close();}
+ });
+ return saveQueue.then(()=>{
+   setStorageStatus(storagePersistent
+     ?"Dati salvati e conservati sul dispositivo"
+     :"Dati salvati sul dispositivo");
+   return true;
+ }).catch(err=>{
+   console.error("Salvataggio IndexedDB non riuscito:",err);
+   // La copia sincrona in localStorage è comunque stata verificata.
+   setStorageStatus("Dati salvati nella memoria locale del browser; archivio secondario non disponibile.",false);
+   return true;
+ });
+}
+async function load(){
+ let localRecord=null,dbRecord=null;
+ try{
+   const raw=localStorage.getItem(STORAGE_KEY);
+   const parsed=raw?JSON.parse(raw):null;
+   if(parsed&&Array.isArray(parsed.periods))localRecord=parsed;
+ }catch(e){console.warn("Lettura memoria locale non riuscita:",e);}
+ try{
+   const db=await openTrackerDB();
+   try{
+     dbRecord=await new Promise((resolve,reject)=>{
+       const tx=db.transaction(DB_STORE,"readonly");
+       const req=tx.objectStore(DB_STORE).get("current");
+       req.onsuccess=()=>resolve(req.result||null);
+       req.onerror=()=>reject(req.error||new Error("Lettura archivio non riuscita"));
+       tx.onabort=()=>reject(tx.error||new Error("Lettura archivio interrotta"));
+     });
+   }finally{db.close();}
+ }catch(e){console.warn("Lettura archivio non riuscita:",e);}
+ const record=(dbRecord&&Array.isArray(dbRecord.periods)&&(!localRecord||(dbRecord._savedAt||0)>(localRecord._savedAt||0)))?dbRecord:localRecord;
+ if(record){
+   data={activation:record.activation||"",periods:record.periods.map(p=>({start:p.start||"",end:p.end||""}))};
+   lastSavedAt=Number(record._savedAt)||0;
+   try{localStorage.setItem(STORAGE_KEY,JSON.stringify(record));}catch(e){}
+   if(record===localRecord&&(!dbRecord||(record._savedAt||0)>(dbRecord._savedAt||0))){
+     await save();
+   }
+   setStorageStatus(storagePersistent?"Storico recuperato · salvataggio protetto":"Storico recuperato dal dispositivo");
+ }else{
+   setStorageStatus("Nessuno storico salvato su questo indirizzo.");
+ }
+}
+function calculate(){
+ const a=data.activation,now=today();
+ if(!a){$("coverageDays").textContent="—";$("coverageMonths").textContent="Inserisci l'attivazione";$("pauseDays").textContent="—";$("pauseMonths").textContent="Massimo 10 mesi";$("expiry").textContent="—";$("status").textContent="Da configurare";$("warning").innerHTML="";return}
+ const maxPause=days(a,addMonths(a,10)),baseCoverage=days(a,addMonths(a,12));
+ let paused=0,openNow=false,activeElapsed=0;
+ data.periods.filter(p=>p.start).forEach(p=>{
+   // I periodi futuri non consumano ancora giorni di sospensione.
+   if(p.start<now){
+     const effectiveEnd=(p.end&&p.end<now)?p.end:now;
+     paused+=Math.max(0,days(p.start,effectiveEnd));
+   }
+   if(p.start<=now&&(!p.end||p.end>now))openNow=true;
+ });
+ activeElapsed=Math.max(0,days(a,now)-paused);
+ const remain=Math.max(0,baseCoverage-activeElapsed),pauseRemain=Math.max(0,maxPause-paused);
+ // Proietta la scadenza usando i giorni di copertura ancora da consumare.
+ // Se la polizza è sospesa, il conteggio riparte dalla data di riattivazione.
+ let cursor=now,expiry=null,projectionUnknown=false;
+ const relevant=data.periods.filter(p=>p.start).filter(p=>p.start>=now || (p.start<=now&&p.end&&p.end>now)).sort((x,y)=>x.start.localeCompare(y.start));
+ const currentPause=relevant.find(p=>p.start<=now&&(!p.end||p.end>now));
+ if(currentPause){
+   if(!currentPause.end) projectionUnknown=true;
+   else cursor=currentPause.end;
+ }
+ if(!projectionUnknown){
+   let left=remain;
+   for(const p of relevant){
+     if(p.start<cursor) continue;
+     if(!p.end){projectionUnknown=true;break;}
+     const activeUntilPause=Math.max(0,days(cursor,p.start));
+     if(left<=activeUntilPause){expiry=addDays(cursor,left);left=0;break;}
+     left-=activeUntilPause;
+     cursor=p.end;
+   }
+   if(!projectionUnknown && expiry===null) expiry=addDays(cursor,left);
+ }
+ $("coverageDays").textContent=remain;$("coverageMonths").textContent=monthDay(remain);
+ $("pauseDays").textContent=pauseRemain;$("pauseMonths").textContent=monthDay(pauseRemain);
+ $("expiry").textContent=projectionUnknown?"Da definire dopo la riattivazione":fmt(expiry);
+ const futureActivation=a>now;
+ $("status").textContent=futureActivation?"Attivazione futura":openNow?"Assicurazione sospesa":remain>0?"Assicurazione attiva":"Copertura terminata";
+ $("status").className="status"+(remain===0?" bad":openNow?" pause":"");
+ let msg="";
+ if(paused>maxPause)msg="Attenzione: il totale delle sospensioni supera il limite di 10 mesi impostato.";
+ else if(projectionUnknown)msg="La scadenza prevista sarà calcolata appena inserisci la data di riattivazione.";
+ else if(pauseRemain<=30)msg="Attenzione: restano 30 giorni o meno di sospensione disponibile.";
+ $("warning").innerHTML=msg?`<div class="notice">${msg}</div>`:"";
+}
+function render(){
+ const ul=$("history");ul.innerHTML="";
+ const events=[];
+ if(data.activation)events.push({date:data.activation,type:"Attivazione",detail:"Inizio della copertura"});
+ data.periods.forEach(p=>{if(p.start)events.push({date:p.start,type:"Sospensione",detail:"Inizio sospensione"});if(p.end)events.push({date:p.end,type:"Riattivazione",detail:p.start?`Fine sospensione · ${Math.max(0,days(p.start,p.end))} giorni`:"Riattivazione registrata indipendentemente"})});
+ events.sort((a,b)=>a.date.localeCompare(b.date)||a.type.localeCompare(b.type));
+ if(!events.length){ul.innerHTML='<li class="empty">Ancora nessun dato registrato.</li>'}
+ else events.forEach(e=>{const li=document.createElement("li"),dot=document.createElement("span");dot.className="dot"+(e.type==="Sospensione"?" pause":"");const ev=document.createElement("div");ev.className="event";const title=document.createElement("strong");title.textContent=`${e.type} · ${fmt(e.date)}`;const detail=document.createElement("small");detail.textContent=e.detail;ev.append(title,detail);const tag=document.createElement("span");tag.className="tag"+(e.type==="Sospensione"?" pause":"");tag.textContent=e.date>today()?"Programmata":e.type;li.append(dot,ev,tag);ul.append(li)});
+ const area=$("editArea");
+ $("editToggle").textContent=editing?"Chiudi modifica":"Modifica storico";
+ if(!editing){area.innerHTML="";return;}
+ let form='<div class="notice" style="margin:10px 0">Ogni data si salva singolarmente: modifica una data e premi il relativo pulsante. Le altre registrazioni restano invariate.</div>';
+ if(!data.periods.length) form+='<div class="empty">Non ci sono sospensioni o riattivazioni da modificare.</div>';
+ data.periods.forEach((p,i)=>{
+   form+=`<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px">
+   <strong style="font-size:13px">Registrazione ${i+1}</strong>
+   ${p.start?`<label>Data sospensione</label><input type="date" id="editStart${i}" value="${p.start}">
+   <button type="button" class="secondary" id="saveStart${i}" style="margin-top:7px">Salva solo questa data</button>`:`<div class="note" style="margin-top:8px">Data sospensione non presente.</div>`}
+   ${p.end?`<label>Data riattivazione</label><input type="date" id="editEnd${i}" value="${p.end}">
+   <button type="button" class="secondary" id="saveEnd${i}" style="margin-top:7px">Salva solo questa data</button>`:
+   `<div class="note" style="margin-top:8px">Nessuna riattivazione registrata (sospensione aperta).</div>`}
+   ${p.start?`<button type="button" class="danger" id="deleteStart${i}" style="display:block;width:100%;margin-top:10px">Elimina solo sospensione</button>`:""}
+   ${p.end?`<button type="button" class="danger" id="deleteEnd${i}" style="display:block;width:100%;margin-top:7px">Elimina solo riattivazione</button>`:""}
+   </div>`;
+ });
+ area.innerHTML=form;
+ data.periods.forEach((p,i)=>{
+   const updateOne=(field)=>{
+     const value=$("edit"+(field==="start"?"Start":"End")+i).value;
+     if(!value){alert("Inserisci una data valida.");return;}
+     const candidate=data.periods.map(x=>({...x}));
+     candidate[i][field]=value;
+     if(field==="start"&&(!candidate[i].start||candidate[i].start<data.activation||(candidate[i].end&&candidate[i].end<candidate[i].start))){
+       alert("La sospensione deve essere successiva all'attivazione e la riattivazione non può precederla.");return;
+     }
+     if(field==="end"&&candidate[i].start&&value<candidate[i].start){alert("La riattivazione non può precedere la sospensione.");return;}
+     const ordered=candidate.filter(x=>x.start).map((x,index)=>({...x,index})).sort((a,b)=>a.start.localeCompare(b.start));
+     for(let j=1;j<ordered.length;j++){
+       const prev=ordered[j-1],cur=ordered[j];
+       if(!prev.end||prev.end>cur.start){alert("La modifica creerebbe periodi di sospensione sovrapposti.");return;}
+     }
+     data.periods=candidate;save();render();calculate();
+   };
+   if(p.start){
+     $("saveStart"+i).addEventListener("click",()=>updateOne("start"));
+     $("deleteStart"+i).addEventListener("click",()=>{
+       if(confirm("Vuoi eliminare soltanto questa data di sospensione? L'eventuale data di riattivazione resterà nello storico.")){
+         data.periods[i].start="";
+         if(!data.periods[i].end)data.periods.splice(i,1);
+         save();render();calculate();
+       }
+     });
+   }
+   if(p.end){
+     $("saveEnd"+i).addEventListener("click",()=>updateOne("end"));
+     $("deleteEnd"+i).addEventListener("click",()=>{
+       if(confirm("Vuoi eliminare soltanto questa data di riattivazione? La data di sospensione resterà invariata.")){
+         data.periods[i].end="";
+         if(!data.periods[i].start)data.periods.splice(i,1);
+         save();render();calculate();
+       }
+     });
+   }
+ });
+}
+$("saveEvent").addEventListener("click",()=>{
+ const a=$("activation").value,s=$("suspension").value,r=$("reactivation").value;
+ if(!a&&!s&&!r){alert("Inserisci almeno una data.");return}
+ if(a){if(data.activation&&data.activation!==a){if(!confirm("Vuoi sostituire la data di attivazione già registrata?"))return;}data.activation=a;}
+ if(s){
+   if(!data.activation){alert("Per registrare una sospensione, inserisci prima la data di attivazione.");return}
+   const already=data.periods.some(p=>p.start===s);
+   if(already){alert("Questa data di sospensione è già registrata.");return}
+   if(s<data.activation){alert("La sospensione non può precedere l'attivazione.");return}
+   const previous=data.periods.filter(p=>p.start<s).sort((x,y)=>y.start.localeCompare(x.start))[0];
+   if(previous&&!previous.end){alert("Completa prima la riattivazione della sospensione precedente.");return}
+   data.periods.push({start:s,end:""});
+ }
+ if(r){
+   if(!data.activation){alert("Per registrare una riattivazione, inserisci prima la data di attivazione.");return}
+   const open=data.periods.filter(p=>!p.end).sort((x,y)=>y.start.localeCompare(x.start))[0];
+   if(!open){alert("Non risulta una sospensione da riattivare. Puoi registrare prima la data di sospensione.");return}
+   if(r<open.start){alert("La riattivazione non può precedere la sospensione.");return}
+   open.end=r;
+ }
+ data.periods.sort((x,y)=>x.start.localeCompare(y.start));
+ save();render();calculate();
+ $("activation").value="";$("suspension").value="";$("reactivation").value="";
+});
+$("editToggle").addEventListener("click",()=>{editing=!editing;render()});
+$("reset").addEventListener("click",()=>{if(confirm("Vuoi cancellare tutti i dati salvati?")){data={activation:"",periods:[]};editing=false;save();render();calculate();$("activation").value="";$("suspension").value="";$("reactivation").value=""}});
+$("saveEvent").disabled=true;
+$("saveEvent").textContent="Caricamento dati…";
+(async()=>{
+ await requestPersistentStorage();
+ try{await load();}catch(e){console.error("Ripristino dati non riuscito:",e);setStorageStatus("Impossibile leggere l'archivio locale.",true);}
+ render();calculate();
+ $("saveEvent").disabled=false;
+ $("saveEvent").textContent="Registra date inserite";
+})();
+// I dati vengono salvati a ogni modifica e nuovamente quando l'app va in background.
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")save();});
+window.addEventListener("pagehide",()=>save());
+// App Android: risorse locali incluse nell APK; nessun service worker necessario.
+</script></body></html>
